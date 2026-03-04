@@ -17,16 +17,49 @@ module Abobrinator
 
     # Envia o conteúdo com a instrução de sistema e retorna o texto gerado.
     def generate(system_instruction:, content:)
-      uri  = build_uri
+      uri  = build_generate_uri
       body = build_body(system_instruction: system_instruction, content: content)
 
       response = post_request(uri, body)
-      parse_response(response)
+      parse_generate_response(response)
+    end
+
+    # Consulta a API para listar os modelos liberados para a chave
+    def models
+      uri = URI.parse("#{API_BASE}/models?key=#{@api_key}")
+      
+      response = get_request(uri)
+      parse_models_response(response)
     end
 
     private
 
-    def build_uri
+    def get_request(uri)
+      http = Net::HTTP.new(uri.host, uri.port)
+      http.use_ssl = true
+      http.read_timeout = 30
+      
+      request = Net::HTTP::Get.new(uri.request_uri)
+      http.request(request)
+    end
+
+    def parse_models_response(response)
+      unless response.is_a?(Net::HTTPSuccess)
+        raise Abobrinator::Error,
+              "[GEMINI] Erro HTTP #{response.code}: #{response.body}"
+      end
+      
+      data = JSON.parse(response.body)
+      
+      (data["models"] || []).map do |model|
+        {
+          name: model["name"],
+          actions: (model["supportedGenerationMethods"] || []).join(", ")
+        }
+      end
+    end
+
+    def build_generate_uri
       path = "#{API_BASE}/models/#{model_name}:generateContent?key=#{@api_key}"
       URI.parse(path)
     end
@@ -62,7 +95,7 @@ module Abobrinator
       http.request(request)
     end
 
-    def parse_response(response)
+    def parse_generate_response(response)
       unless response.is_a?(Net::HTTPSuccess)
         raise Abobrinator::Error,
               "[GEMINI] Erro HTTP #{response.code}: #{response.body}"

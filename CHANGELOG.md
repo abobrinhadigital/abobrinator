@@ -4,6 +4,11 @@ Todos os feitos, remendos e exorcismos do Abobrinator (Ruby Edition) serão docu
 O formato é baseado em [Keep a Changelog](https://keepachangelog.com/pt-BR/1.0.0/),
 e este projeto segue [Versionamento Semântico](https://semver.org/lang/pt-BR/).
 
+## [1.1.0] - O Catálogo do Oráculo - 2026-03-04
+
+### Adicionado
+- **Comando `models`**: Novo utilitário na CLI (`bin/abobrinator models`) que faz requisição direta nativa no endpoint `/models` do Gemini para consultar e listar em tela todos os LLMs disponíveis para uso na chave de API atual do `.env`. Aposenta o antigo utilitário em Python solto.
+
 ## [1.0.0] - O Renascimento Ruby - 2026-03-04
 
 ### Adicionado

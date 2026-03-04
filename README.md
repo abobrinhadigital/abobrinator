@@ -104,6 +104,18 @@ Adicionando a flag `--rascunho`, o Abobrinator salva o Markdown final em `JEKYLL
 bundle exec bin/abobrinator --rascunho
 ```
 
+### `models`
+
+Consulta a API do Google rest e lista todos os modelos generativos ou ferramentas que a sua `GEMINI_API_KEY` tem acesso atualmente. Útil para descobrir o nome exato dos novos lançamentos do Google para colocar no `GEMINI_MODEL` do arquivo `.env`.
+
+```bash
+bundle exec bin/abobrinator models
+
+# Exemplo de Saída:
+# - models/gemini-2.0-flash (Suporta: generateContent, countTokens)
+# - models/nano-banana-pro-preview (Suporta: generateContent, countTokens)
+```
+
 ---
 
 ## Arquivos de Dados

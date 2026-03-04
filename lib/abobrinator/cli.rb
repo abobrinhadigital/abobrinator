@@ -8,6 +8,33 @@ module Abobrinator
       true
     end
 
+    desc "models", "Lista todos os modelos Gemini disponíveis para a sua API Key"
+    def models
+      config = Abobrinator::Config.load!
+      
+      client = Abobrinator::GeminiClient.new(
+        api_key: config.gemini_api_key,
+        model:   config.gemini_model # O modelo não importa pro request de listagem
+      )
+      
+      puts "\n[GEMINI] Buscando modelos liberados para sua chave..."
+      
+      available_models = client.models
+      
+      if available_models.empty?
+        puts "Nenhum modelo encontrado ou erro na leitura."
+      else
+        puts "Modelos disponíveis:"
+        available_models.each do |model|
+          puts "  - #{model[:name]} (Suporta: #{model[:actions]})"
+        end
+      end
+    rescue StandardError => e
+      puts "\n[ABOBRINATOR] ERRO FATAL: #{e.class} - #{e.message}"
+      puts e.backtrace if ENV["DEBUG"]
+      exit 1
+    end
+
     desc "process", "Processa novas transcrições no diretório configurado via GEMINI"
     method_option :rascunho,
                   type: :boolean,
