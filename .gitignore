@@ -1,0 +1,14 @@
+# Variáveis de ambiente secretas
+.env
+
+# Dependências baixadas do Ruby
+vendor/
+
+# Metadados e cache do Bundler
+.bundle/
+
+# Pacotes pré-compilados do Ruby
+*.gem
+
+# A alma do projeto (persona que a IA vai assumir não sobe publicamente)
+data/ai_persona.md
