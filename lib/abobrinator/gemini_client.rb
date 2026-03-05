@@ -3,6 +3,7 @@
 require "net/http"
 require "uri"
 require "json"
+require "base64"
 
 module Abobrinator
   # Encapsula a comunicação com a API REST do Google Gemini.
@@ -10,18 +11,32 @@ module Abobrinator
   class GeminiClient
     API_BASE = "https://generativelanguage.googleapis.com/v1beta".freeze
 
-    def initialize(api_key:, model:)
-      @api_key = api_key
-      @model   = model
+    def initialize(api_key:, model:, image_model: nil)
+      @api_key     = api_key
+      @model       = model
+      @image_model = image_model
     end
 
     # Envia o conteúdo com a instrução de sistema e retorna o texto gerado.
     def generate(system_instruction:, content:)
-      uri  = build_generate_uri
+      uri  = build_generate_uri(@model)
       body = build_body(system_instruction: system_instruction, content: content)
 
       response = post_request(uri, body)
       parse_generate_response(response)
+    end
+
+    # Envia o prompt de imagem para a API e retorna o binário da imagem (PNG/JPEG)
+    def generate_image(prompt:)
+      unless @image_model
+        raise Abobrinator::Error, "[GEMINI] Model de imagem não configurado no client."
+      end
+
+      uri  = build_generate_uri(@image_model)
+      body = build_image_body(prompt: prompt)
+
+      response = post_request(uri, body)
+      parse_image_response(response)
     end
 
     # Consulta a API para listar os modelos liberados para a chave
@@ -59,8 +74,9 @@ module Abobrinator
       end
     end
 
-    def build_generate_uri
-      path = "#{API_BASE}/models/#{model_name}:generateContent?key=#{@api_key}"
+    def build_generate_uri(model)
+      clean_model = model.sub(%r{\Amodels/}, "")
+      path = "#{API_BASE}/models/#{clean_model}:generateContent?key=#{@api_key}"
       URI.parse(path)
     end
 
@@ -83,6 +99,17 @@ module Abobrinator
       }
     end
 
+    def build_image_body(prompt:)
+      {
+        contents: [
+          {
+            role: "user",
+            parts: [{ text: prompt }]
+          }
+        ]
+      }
+    end
+
     def post_request(uri, body)
       http          = Net::HTTP.new(uri.host, uri.port)
       http.use_ssl  = true
@@ -98,12 +125,38 @@ module Abobrinator
     def parse_generate_response(response)
       unless response.is_a?(Net::HTTPSuccess)
         raise Abobrinator::Error,
-              "[GEMINI] Erro HTTP #{response.code}: #{response.body}"
+              "[GEMINI] Erro HTTP #{response.code}: #{format_error_message(response)}"
       end
 
       data = JSON.parse(response.body)
       data.dig("candidates", 0, "content", "parts", 0, "text") ||
         raise(Abobrinator::Error, "[GEMINI] Resposta inesperada: #{response.body}")
+    end
+
+    def parse_image_response(response)
+      unless response.is_a?(Net::HTTPSuccess)
+        raise Abobrinator::Error,
+              "[GEMINI] Erro HTTP na geração de imagem #{response.code}: #{format_error_message(response)}"
+      end
+
+      data = JSON.parse(response.body)
+      base64_data = data.dig("candidates", 0, "content", "parts", 0, "inlineData", "data")
+      
+      unless base64_data
+        raise Abobrinator::Error, "[GEMINI] A API não retornou inlineData.data na resposta."
+      end
+
+      # Decode da string base64 para binário
+      Base64.decode64(base64_data)
+    end
+
+    def format_error_message(response)
+      begin
+        parsed = JSON.parse(response.body)
+        parsed.dig("error", "message") || response.body.strip
+      rescue JSON::ParserError
+        response.body.strip
+      end
     end
   end
 end

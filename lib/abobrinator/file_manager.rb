@@ -33,11 +33,20 @@ module Abobrinator
     end
 
     def save_asset!(base_name:, raw_content:, is_draft:)
-      dir = is_draft ? @config.drafts_dir : @config.transcription_dir
+      dir = is_draft ? @config.drafts_transcription_dir : @config.transcription_dir
       path = File.join(dir, "#{base_name}.txt")
 
       File.write(path, raw_content)
       puts "[ABOBRINATOR] ✅ Transcrição consolidada salva em: #{path}"
+      path
+    end
+
+    def save_image!(base_name:, binary_data:, is_draft:)
+      dir  = is_draft ? @config.drafts_image_dir : @config.image_dir
+      path = File.join(dir, "#{base_name}.jpg")
+      
+      File.binwrite(path, binary_data)
+      puts "[ABOBRINATOR] 🖼️  Imagem de capa salva em: #{path}"
       path
     end
   end

@@ -36,10 +36,14 @@ module Abobrinator
     end
 
     desc "process", "Processa novas transcrições no diretório configurado via GEMINI"
-    method_option :rascunho,
+    method_option :draft,
                   type: :boolean,
-                  aliases: "-r",
+                  aliases: "-d",
                   desc: "Salva os posts na pasta _drafts ao invés de _posts",
+                  default: false
+    method_option :no_image,
+                  type: :boolean,
+                  desc: "Desliga a funcionalidade nativa do Photator de gerar imagem de capa",
                   default: false
     def process
       config = Abobrinator::Config.load!
@@ -55,7 +59,7 @@ module Abobrinator
         return
       end
 
-      mode = options[:rascunho] ? "RASCUNHO" : "POST"
+      mode = options[:draft] ? "DRAFT" : "POST"
       puts "\n[ABOBRINATOR] Operação [#{mode}] para pasta: #{config.new_dir}"
       puts "[ABOBRINATOR] Consolidando #{new_files.size} arquivos via API Gemini..."
 
@@ -66,7 +70,8 @@ module Abobrinator
 
       client = Abobrinator::GeminiClient.new(
         api_key: config.gemini_api_key,
-        model:   config.gemini_model
+        model:   config.gemini_model,
+        image_model: config.gemini_image_model
       )
 
       # Mágica acontece (bate na API via net/http)
@@ -75,13 +80,14 @@ module Abobrinator
         content: payload
       )
 
-      # Trata a resposta: força data, cria slugs, salva post MD e TXT asset
+      # Trata a resposta: força data, cria slugs, salva post MD e TXT asset e IMAGEM
       writer = Abobrinator::PostWriter.new(
         config: config,
         file_manager: file_manager,
         consolidator: consolidator,
         generated_text: generated_content,
-        draft: options[:rascunho]
+        draft: options[:draft],
+        no_image: options[:no_image]
       )
 
       writer.process!

@@ -10,17 +10,19 @@ module Abobrinator
   class PostWriter
     attr_reader :saved_md_path, :saved_txt_path
 
-    def initialize(config:, file_manager:, consolidator:, generated_text:, draft:)
+    def initialize(config:, file_manager:, consolidator:, generated_text:, draft:, no_image: false)
       @config         = config
       @file_manager   = file_manager
       @consolidator   = consolidator
       @generated_text = generated_text
       @draft          = draft
+      @no_image       = no_image
     end
 
     def process!
       parse_gemini_output!
       extract_base_name!
+      generate_and_save_image! unless @no_image
       build_front_matter!
       force_asset_link_symmetry!
 
@@ -67,8 +69,52 @@ module Abobrinator
       @base_name = "#{date_str}-#{slug[0..44]}"
     end
 
+    def generate_and_save_image!
+      prompt = @metadata["image_prompt"]
+      return unless prompt && !prompt.empty?
+
+      begin
+        provider_name = @config.image_provider == "huggingface" ? "Hugging Face API" : "Photator (Gemini)"
+        puts "\n[ABOBRINATOR] 🎨 Gerando imagem de capa via #{provider_name}..."
+        
+        binary_data = if @config.image_provider == "huggingface"
+                        client = Abobrinator::HuggingFaceClient.new(
+                          api_key: @config.huggingface_api_key,
+                          model: @config.huggingface_image_model
+                        )
+                        client.generate_image(prompt: prompt)
+                      else
+                        client = Abobrinator::GeminiClient.new(
+                          api_key: @config.gemini_api_key,
+                          model: @config.gemini_model,
+                          image_model: @config.gemini_image_model
+                        )
+                        client.generate_image(prompt: prompt)
+                      end
+        
+        @saved_image_path = @file_manager.save_image!(
+          base_name: @base_name,
+          binary_data: binary_data,
+          is_draft: @draft
+        )
+      rescue StandardError => e
+        puts "[ABOBRINATOR] ⚠️ Aviso: Falha ao gerar imagem de capa: #{e.message}"
+      end
+    end
+
     def build_front_matter!
       date_formatted = Time.now.strftime("%Y-%m-%d %H:%M:%S #{@config.timezone_offset}")
+
+      image_yaml = ""
+      if @saved_image_path
+        # Extrair o basename.jpg e formatar pro jekyll-seo-tag baseado no contexto
+        img_folder = @draft ? "drafts" : "posts"
+        img_url = "/assets/images/#{img_folder}/#{@base_name}.jpg"
+        image_yaml = "\nimage: \"#{img_url}\""
+        
+        # Injeta fisicamente a imagem no topo do corpo do post (Markdown nativo)
+        @post_body.insert(0, "![#{@metadata['title']}](#{img_url})\n\n")
+      end
 
       # Montamos o YAML Front Matter do Jekyll na mão, hardcoded com Ruby
       # Isso garante que a IA não vá quebrar as aspas ou a formatação
@@ -78,7 +124,7 @@ module Abobrinator
         title: "#{@metadata['title']}"
         description: "#{@metadata['description']}"
         categories: #{@metadata['categories']}
-        author: #{@metadata['author']}
+        author: #{@metadata['author']}#{image_yaml}
         date: #{date_formatted}
         ---
       YAML
@@ -88,8 +134,10 @@ module Abobrinator
     def force_asset_link_symmetry!
       # Substitui a tag limpa do {{ASSET_LINK}} injetada pelo Pollux
       # pelo caminho real garantindo a Simetria Absoluta.
-      real_link = "/assets/transcricoes/#{@base_name}.txt"
-      @post_body.gsub!("{{ASSET_LINK}}", real_link)
+      folder_name = @draft ? "drafts" : "posts"
+      real_url = "/assets/transcricoes/#{folder_name}/#{@base_name}.txt"
+      markdown_link = "[Ler Transcrição Original](#{real_url})"
+      @post_body.gsub!("{{ASSET_LINK}}", markdown_link)
     end
 
     def save_markdown!

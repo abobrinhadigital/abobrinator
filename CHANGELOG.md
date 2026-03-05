@@ -4,6 +4,25 @@ Todos os feitos, remendos e exorcismos do Abobrinator (Ruby Edition) serão docu
 O formato é baseado em [Keep a Changelog](https://keepachangelog.com/pt-BR/1.0.0/),
 e este projeto segue [Versionamento Semântico](https://semver.org/lang/pt-BR/).
 
+## [2.1.0] - O Tuberculo Multiverso (Hugging Face) - 2026-03-04
+
+### Adicionado
+- **Provedores Pluggaveis de Imagem**: Implementada arquitetura `IMAGE_PROVIDER` no `.env` permitindo ao usuário chavear entre motores gráficos (Atualmente: `huggingface` e `gemini`).
+- Construída a classe `HuggingFaceClient` integrando nativamente consumos da Inference API pública de modelos text-to-image de ponta como FLUX.1.
+- Extração binária ultra-leve da HF sem necessidade de encoding em Base64, economizando processamento.
+- **Ecossistema Draft Isolado**: Imagens geradas com a flag `--draft` agora são salvas na pasta `JEKYLL_DRAFTS_IMAGE_DIR` e transcrições na `JEKYLL_DRAFTS_TRANSCRIPTION_DIR` protegendo os links estáticos do Jekyll.
+
+## [2.0.0] - A Imagem é Tudo (Integração Photator) - 2026-03-04
+
+### Adicionado
+- **Geração Nativa de Imagens de Capa (`photator`)**: A responsabilidade do Photator foi absorvida nativamente. Agora, a cada post gerado, o "Abobrinator" lê o novo parâmetro `image_prompt` no JSON, consome automaticamente a API do Google para gerar uma arte, extrai o Base64, e salva no disco.
+- Mapeamento nativo da tag `image: /assets/images/...jpg` direto pro Front Matter do Jekyll (focado no jekyll-seo-tag).
+- **Flag `--no-image`**: Novo botão de pânico no comando `process` para inibir as chamadas à geração gráfica.
+
+### Modificado
+- A gem independente `base64` foi explícita no Gemfile para manter compatibilidade com a limpa do Ruby 3.4+.
+- A flag `--rascunho` foi universalizada para `--draft`.
+
 ## [1.1.0] - O Catálogo do Oráculo - 2026-03-04
 
 ### Adicionado

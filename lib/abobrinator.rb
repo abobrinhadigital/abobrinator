@@ -9,6 +9,7 @@ end
 require_relative "abobrinator/config"
 require_relative "abobrinator/consolidator"
 require_relative "abobrinator/gemini_client"
+require_relative "abobrinator/huggingface_client"
 require_relative "abobrinator/post_writer"
 require_relative "abobrinator/file_manager"
 require_relative "abobrinator/cli"
