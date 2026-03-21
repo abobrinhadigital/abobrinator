@@ -12,3 +12,8 @@ vendor/
 
 # A alma do projeto (persona que a IA vai assumir não sobe publicamente)
 data/ai_persona.md
+
+# Instruções da IA e configurações de agente
+AGENTS.md
+.cursorrules
+.copilot-instructions.md
